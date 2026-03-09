@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "A smart travel price monitor that tracks flight and hotel packages to your desired destinations and sends email alerts when the best deals are available."
 authors = ["Felipe Merenda <felipemerenda1@gmail.com>"]
 readme = "README.md"
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.11"
