@@ -1,0 +1,23 @@
+trips:
+  - origin: OPO
+    destination: BCN
+    departure_date: "2026-06-01"
+    return_date: "2026-06-15"
+    max_price: 500
+
+  - origin: OPO
+    destination: MXP
+    departure_date: "2026-07-01"
+    return_date: "2026-07-15"
+    max_price: 600
+
+  - origin: OPO
+    destination: CDG
+    departure_date: "2026-08-01"
+    return_date: "2026-08-15"
+    max_price: 550
+
+preferences:
+  currency: EUR
+  adults: 1
+  check_interval_hours: 6
