@@ -16,6 +16,7 @@ python-dotenv = "^1.0"
 pytest = "^8.0"
 mypy = "^1.0"
 ruff = "^0.4"
+types-pyyaml = "^6.0.12.20250915"
 
 [build-system]
 requires = ["poetry-core"]

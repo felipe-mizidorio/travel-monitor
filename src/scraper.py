@@ -165,7 +165,7 @@ def fetch_all_trips() -> list[dict]:
 
     results = []
     for user in users:
-        user_result = {
+        user_result: dict = {
             "name": user.get("name"),
             "email": user.get("email"),
             "trips": [],
