@@ -13,11 +13,13 @@ CLIENT_ID = os.getenv("AMADEUS_CLIENT_ID")
 CLIENT_SECRET = os.getenv("AMADEUS_CLIENT_SECRET")
 HOSTNAME = os.getenv("AMADEUS_HOSTNAME", "test")
 
+
 def load_users() -> list[dict]:
     users_path = Path(__file__).parent.parent / "users.yml"
     with open(users_path, "r") as f:
         data = yaml.safe_load(f)
     return data.get("users", [])
+
 
 def _parse_duration(duration: str) -> int:
     """Parses ISO 8601 duration (e.g. PT2H30M) to minutes."""
@@ -25,6 +27,7 @@ def _parse_duration(duration: str) -> int:
     hours = int(duration.split("H")[0]) if "H" in duration else 0
     minutes = int(duration.split("H")[-1].replace("M", "")) if "M" in duration else 0
     return hours * 60 + minutes
+
 
 def _filter_by_duration(offers: list, max_hours: int) -> list:
     max_minutes = max_hours * 60
@@ -39,6 +42,7 @@ def _filter_by_duration(offers: list, max_hours: int) -> list:
             filtered.append(offer)
     return filtered
 
+
 def _filter_by_baggage(offers: list) -> list:
     filtered = []
     for offer in offers:
@@ -52,6 +56,7 @@ def _filter_by_baggage(offers: list) -> list:
         if has_baggage:
             filtered.append(offer)
     return filtered
+
 
 def fetch_flight_offers(client: Client, trip: dict) -> dict | None:
     origin = trip["origin"]
@@ -113,7 +118,9 @@ def fetch_flight_offers(client: Client, trip: dict) -> dict | None:
             offers = _filter_by_baggage(offers)
 
         if not offers:
-            logger.info(f"No offers found after filtering for {origin} -> {destination}")
+            logger.info(
+                f"No offers found after filtering for {origin} -> {destination}"
+            )
             return None
 
         best_price = float(offers[0]["price"]["total"])
@@ -125,8 +132,13 @@ def fetch_flight_offers(client: Client, trip: dict) -> dict | None:
         else:
             comparable_price = best_price
 
-        carrier = trip.get("airline") or offers[0]["itineraries"][0]["segments"][0]["carrierCode"]
-        logger.info(f"Best price for {origin} -> {destination}: {best_price} {currency} ({carrier})")
+        carrier = (
+            trip.get("airline")
+            or offers[0]["itineraries"][0]["segments"][0]["carrierCode"]
+        )
+        logger.info(
+            f"Best price for {origin} -> {destination}: {best_price} {currency} ({carrier})"
+        )
 
         return {
             "origin": origin,
@@ -144,13 +156,16 @@ def fetch_flight_offers(client: Client, trip: dict) -> dict | None:
         logger.error(f"Error fetching flight offers for {origin} -> {destination}: {e}")
         return None
 
+
 def fetch_all_trips() -> list[dict]:
     users = load_users()
-    amadeus = Client(client_id=CLIENT_ID, client_secret=CLIENT_SECRET, hostname=HOSTNAME)
+    amadeus = Client(
+        client_id=CLIENT_ID, client_secret=CLIENT_SECRET, hostname=HOSTNAME
+    )
 
     results = []
     for user in users:
-        user_result = {
+        user_result: dict = {
             "name": user.get("name"),
             "email": user.get("email"),
             "trips": [],
@@ -164,6 +179,7 @@ def fetch_all_trips() -> list[dict]:
 
     return results
 
+
 def main():
     results = fetch_all_trips()
     for user in results:
@@ -176,6 +192,6 @@ def main():
                 f"- Airline: {trip['airline']}"
             )
 
+
 if __name__ == "__main__":
     main()
-    

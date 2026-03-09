@@ -9,11 +9,12 @@ from dotenv import load_dotenv
 logger = logging.getLogger(__name__)
 
 load_dotenv()
-EMAIL_SENDER = os.getenv("EMAIL_SENDER")
-EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
+EMAIL_SENDER: str = os.getenv("EMAIL_SENDER", "")
+EMAIL_PASSWORD: str = os.getenv("EMAIL_PASSWORD", "")
 
-SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
+SMTP_HOST: str = os.getenv("SMTP_HOST", "smtp.gmail.com")
+SMTP_PORT: int = int(os.getenv("SMTP_PORT", 587))
+
 
 def build_email_body(deals: list[dict]) -> str:
     lines = []
@@ -25,6 +26,7 @@ def build_email_body(deals: list[dict]) -> str:
             f"   🎯 Your max price: {deal['max_price']} {deal['currency']}\n"
         )
     return "\n".join(lines)
+
 
 def send_email(deals: list[dict], email: str) -> None:
     if not deals:
@@ -50,6 +52,7 @@ def send_email(deals: list[dict], email: str) -> None:
     except Exception as e:
         logger.error(f"Failed to send email: {e}")
 
+
 def filter_deals(trips: list[dict]) -> list[dict]:
     deals = []
     for trip in trips:
@@ -67,6 +70,7 @@ def filter_deals(trips: list[dict]) -> list[dict]:
             )
     return deals
 
+
 def main():
     from src.scraper import fetch_all_trips
 
@@ -74,6 +78,7 @@ def main():
     for user in users:
         deals = filter_deals(user["trips"])
         send_email(deals, user["email"])
+
 
 if __name__ == "__main__":
     main()
