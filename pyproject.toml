@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "travel-monitor"
+version = "0.1.0"
+description = "A smart travel price monitor that tracks flight and hotel packages to your desired destinations and sends email alerts when the best deals are available."
+authors = ["Felipe Merenda <felipemerenda1@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+amadeus = "^9.0.0"
+pyyaml = "^6.0"
+python-dotenv = "^1.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
