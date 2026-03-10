@@ -38,15 +38,15 @@ def _parse_duration(duration_str: str) -> int:
 
 
 def fetch_flight_offers(trip: dict) -> dict | None:
-    origin = trip["origin"]
-    destination = trip["destination"]
-    departure_date = trip["departure_date"]
-    return_date = trip.get("return_date")
+    origin = str(trip["origin"])
+    destination = str(trip["destination"])
+    departure_date = str(trip["departure_date"])
+    return_date = str(trip.get("return_date")) if trip.get("return_date") else None
     max_price = trip.get("max_price")
     currency = trip.get("currency", "EUR")
-    adults = trip.get("adults", 1)
-    children = trip.get("children", 0)
-    infants = trip.get("infants", 0)
+    adults = int(trip.get("adults", 1))
+    children = int(trip.get("children", 0))
+    infants = int(trip.get("infants", 0))
 
     SeatType: TypeAlias = Literal["economy", "premium-economy", "business", "first"]
     TripType: TypeAlias = Literal["round-trip", "one-way", "multi-city"]
@@ -134,8 +134,9 @@ def fetch_flight_offers(trip: dict) -> dict | None:
         }
 
     except Exception as e:
+        import traceback
         logger.error(
-            f"Error fetching flights for {origin} -> {destination} on {departure_date}: {e}"
+            f"Error fetching flights for {origin} -> {destination} on {departure_date}: {e}\n{traceback.format_exc()}"
         )
         return None
 
