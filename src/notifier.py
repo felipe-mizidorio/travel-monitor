@@ -1,8 +1,10 @@
-import logging
-import os
-import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+import logging
+import os
+from pathlib import Path
+import smtplib
+from string import Template
 
 from dotenv import load_dotenv
 
@@ -15,17 +17,28 @@ EMAIL_PASSWORD: str = os.getenv("EMAIL_PASSWORD", "")
 SMTP_HOST: str = os.getenv("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT: int = int(os.getenv("SMTP_PORT", 587))
 
+TEMPLATES_DIR = Path(__file__).parent / "templates"
+EMAIL_TEMPLATE = Template((TEMPLATES_DIR / "email.html").read_text())
+CARD_TEMPLATE = Template((TEMPLATES_DIR / "email_card.html").read_text())
+
 
 def build_email_body(deals: list[dict]) -> str:
-    lines = []
+    cards = ""
     for deal in deals:
-        lines.append(
-            f"✈️ {deal['origin']} → {deal['destination']} ({deal['airline']})\n"
-            f"   📅 {deal['departure_date']} → {deal['return_date']}\n"
-            f"   💰 Best price: {deal['best_price']} {deal['currency']}\n"
-            f"   🎯 Your max price: {deal['max_price']} {deal['currency']}\n"
+        savings_pct = int(((deal["max_price"] - deal["best_price"]) / deal["max_price"]) * 100)
+        cards += CARD_TEMPLATE.substitute(
+            **{**deal,
+               "best_price": f"{deal['best_price']:.0f}",
+               "max_price": f"{deal['max_price']:.0f}",
+               "savings_pct": savings_pct,
+            }
         )
-    return "\n".join(lines)
+
+    return EMAIL_TEMPLATE.substitute(
+        cards=cards,
+        deal_count=len(deals),
+        deal_plural="s" if len(deals) > 1 else "",
+    )
 
 
 def send_email(deals: list[dict], email: str) -> None:
@@ -40,7 +53,7 @@ def send_email(deals: list[dict], email: str) -> None:
     msg["From"] = EMAIL_SENDER
     msg["To"] = email
     msg["Subject"] = subject
-    msg.attach(MIMEText(body, "plain"))
+    msg.attach(MIMEText(body, "html"))
 
     try:
         with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
