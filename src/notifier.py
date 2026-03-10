@@ -25,12 +25,15 @@ CARD_TEMPLATE = Template((TEMPLATES_DIR / "email_card.html").read_text())
 def build_email_body(deals: list[dict]) -> str:
     cards = ""
     for deal in deals:
-        savings_pct = int(((deal["max_price"] - deal["best_price"]) / deal["max_price"]) * 100)
+        savings_pct = int(
+            ((deal["max_price"] - deal["best_price"]) / deal["max_price"]) * 100
+        )
         cards += CARD_TEMPLATE.substitute(
-            **{**deal,
-               "best_price": f"{deal['best_price']:.0f}",
-               "max_price": f"{deal['max_price']:.0f}",
-               "savings_pct": savings_pct,
+            **{
+                **deal,
+                "best_price": f"{deal['best_price']:.0f}",
+                "max_price": f"{deal['max_price']:.0f}",
+                "savings_pct": savings_pct,
             }
         )
 

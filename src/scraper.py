@@ -80,7 +80,7 @@ def fetch_flight_offers(trip: dict) -> dict | None:
                 infants_in_seat=infants,
             ),
         )
-        
+
         result = get_flights_from_filter(
             tfs,
             currency=currency,
