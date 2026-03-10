@@ -1,17 +1,15 @@
 import logging
 import os
 from pathlib import Path
+import re
 
-from amadeus import Client
+from fast_flights import FlightData, Passengers, get_flights
 from dotenv import load_dotenv
 import yaml
 
 logger = logging.getLogger(__name__)
 
 load_dotenv()
-CLIENT_ID = os.getenv("AMADEUS_CLIENT_ID")
-CLIENT_SECRET = os.getenv("AMADEUS_CLIENT_SECRET")
-HOSTNAME = os.getenv("AMADEUS_HOSTNAME", "test")
 
 
 def load_users() -> list[dict]:
@@ -21,44 +19,25 @@ def load_users() -> list[dict]:
     return data.get("users", [])
 
 
-def _parse_duration(duration: str) -> int:
-    """Parses ISO 8601 duration (e.g. PT2H30M) to minutes."""
-    duration = duration.replace("PT", "")
-    hours = int(duration.split("H")[0]) if "H" in duration else 0
-    minutes = int(duration.split("H")[-1].replace("M", "")) if "M" in duration else 0
-    return hours * 60 + minutes
+def _parse_price(price_str: str) -> float:
+    """Parses price string to float."""
+    cleaned = re.sub(r"[^\d.,]", "", price_str).replace(",", "")
+    return float(cleaned)
 
 
-def _filter_by_duration(offers: list, max_hours: int) -> list:
-    max_minutes = max_hours * 60
-    filtered = []
-    for offer in offers:
-        total_minutes = sum(
-            _parse_duration(segment["duration"])
-            for itinerary in offer["itineraries"]
-            for segment in itinerary["segments"]
-        )
-        if total_minutes <= max_minutes:
-            filtered.append(offer)
-    return filtered
+def _parse_duration(duration_str: str) -> int:
+    """Parses a duration string to minutes."""
+    hours = re.search(r"(\d+)\s*hr", duration_str)
+    minutes = re.search(r"(\d+)\s*min", duration_str)
+    total = 0
+    if hours:
+        total += int(hours.group(1)) * 60
+    if minutes:
+        total += int(minutes.group(1))
+    return total
 
 
-def _filter_by_baggage(offers: list) -> list:
-    filtered = []
-    for offer in offers:
-        has_baggage = all(
-            any(
-                segment.get("includedCheckedBags", {}).get("quantity", 0) > 0
-                for segment in traveler.get("fareDetailsBySegment", [])
-            )
-            for traveler in offer.get("travelerPricings", [])
-        )
-        if has_baggage:
-            filtered.append(offer)
-    return filtered
-
-
-def fetch_flight_offers(client: Client, trip: dict) -> dict | None:
+def fetch_flight_offers(trip: dict) -> dict | None:
     origin = trip["origin"]
     destination = trip["destination"]
     departure_date = trip["departure_date"]
@@ -69,75 +48,69 @@ def fetch_flight_offers(client: Client, trip: dict) -> dict | None:
     children = trip.get("children", 0)
     infants = trip.get("infants", 0)
 
-    params = {
-        "originLocationCode": origin,
-        "destinationLocationCode": destination,
-        "departureDate": departure_date,
-        "returnDate": return_date,
-        "adults": adults,
-        "currencyCode": currency,
+    seat_map = {
+        "ECONOMY": "economy",
+        "PREMIUM_ECONOMY": "premium economy",
+        "BUSINESS": "business",
+        "FIRST": "first",
     }
+    seat = seat_map.get(trip.get("travel_class", "ECONOMY"), "economy")
 
-    # optional parameters
-    if children:
-        params["children"] = children
-
-    if infants:
-        params["infants"] = infants
-
-    if trip.get("travel_class"):
-        params["travelClass"] = trip["travel_class"]
-
-    if trip.get("airline") and trip.get("excluded_airlines"):
-        logger.warning(
-            f"Trip {origin} -> {destination}: 'airline' and 'excluded_airlines' "
-            f"cannot be used together. Ignoring 'excluded_airlines'."
+    flight_data = [
+        FlightData(date=departure_date, from_airport=origin, to_airport=destination)
+    ]
+    if return_date:
+        flight_data.append(
+            FlightData(date=return_date, from_airport=destination, to_airport=origin)
         )
 
-    if trip.get("airline"):
-        params["includedAirlineCodes"] = trip["airline"]
-    elif trip.get("excluded_airlines"):
-        params["excludedAirlineCodes"] = ",".join(trip["excluded_airlines"])
-
-    if trip.get("max_stops") == 0:
-        params["nonStop"] = True
+    trip_type = "round-trip" if return_date else "one-way"
 
     try:
-        response = client.shopping.flight_offers_search.get(**params)
-        offers = response.data
+        result = get_flights(
+            flight_data=flight_data,
+            trip=trip_type,
+            seat=seat,
+            passengers=Passengers(
+                adults=adults,
+                children=children,
+                infants_in_seat=infants,
+            ),
+            fetch_mode="local",
+        )
 
-        if not offers:
-            logger.info(f"No offers found for {origin} -> {destination}")
-            return None
-
-        # post-response filters
-        if trip.get("max_duration_hours"):
-            offers = _filter_by_duration(offers, trip["max_duration_hours"])
-
-        if trip.get("included_baggage"):
-            offers = _filter_by_baggage(offers)
-
-        if not offers:
+        flights = result.flights
+        if not flights:
             logger.info(
-                f"No offers found after filtering for {origin} -> {destination}"
+                f"No flights found for {origin} -> {destination} on {departure_date}"
             )
             return None
 
-        best_price = float(offers[0]["price"]["total"])
+        if trip.get("max_stops") == 0:
+            flights = [f for f in flights if f.stops == 0]
 
-        # adjust price check per person if set
+        if trip.get("max_duration_hours"):
+            max_minutes = trip["max_duration_hours"] * 60
+            flights = [f for f in flights if _parse_duration(f.duration) <= max_minutes]
+
+        if not flights:
+            logger.info(
+                f"No flights found for {origin} -> {destination} on {departure_date} after applying filters"
+            )
+            return None
+
+        best = min(flights, key=lambda f: _parse_price(f.price))
+        best_price = _parse_price(best.price)
+
         if trip.get("max_price_per_person"):
             total_passengers = adults + children + infants
             comparable_price = best_price / total_passengers
         else:
             comparable_price = best_price
 
-        carrier = (
-            trip.get("airline")
-            or offers[0]["itineraries"][0]["segments"][0]["carrierCode"]
-        )
+        carrier = trip.get("airline") or best.name
         logger.info(
-            f"Best price for {origin} -> {destination}: {best_price} {currency} ({carrier})"
+            f"Best flight for {origin} -> {destination} on {departure_date}: {best.price} {currency} with {carrier}"
         )
 
         return {
@@ -153,16 +126,14 @@ def fetch_flight_offers(client: Client, trip: dict) -> dict | None:
         }
 
     except Exception as e:
-        logger.error(f"Error fetching flight offers for {origin} -> {destination}: {e}")
+        logger.error(
+            f"Error fetching flights for {origin} -> {destination} on {departure_date}: {e}"
+        )
         return None
 
 
 def fetch_all_trips() -> list[dict]:
     users = load_users()
-    amadeus = Client(
-        client_id=CLIENT_ID, client_secret=CLIENT_SECRET, hostname=HOSTNAME
-    )
-
     results = []
     for user in users:
         user_result: dict = {
@@ -171,12 +142,10 @@ def fetch_all_trips() -> list[dict]:
             "trips": [],
         }
         for trip in user.get("trips", []):
-            offer = fetch_flight_offers(amadeus, trip)
+            offer = fetch_flight_offers(trip)
             if offer:
                 user_result["trips"].append(offer)
-
         results.append(user_result)
-
     return results
 
 
