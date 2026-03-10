@@ -3,7 +3,7 @@ from pathlib import Path
 import re
 from typing import Literal, TypeAlias
 
-from fast_flights import FlightData, Passengers, get_flights
+from fast_flights import FlightData, Passengers, create_filter, get_flights_from_filter
 from dotenv import load_dotenv
 import yaml
 
@@ -70,7 +70,7 @@ def fetch_flight_offers(trip: dict) -> dict | None:
     trip_type: TripType = "round-trip" if return_date else "one-way"
 
     try:
-        result = get_flights(
+        tfs = create_filter(
             flight_data=flight_data,
             trip=trip_type,
             seat=seat,
@@ -79,7 +79,12 @@ def fetch_flight_offers(trip: dict) -> dict | None:
                 children=children,
                 infants_in_seat=infants,
             ),
-            fetch_mode="local",
+        )
+
+        result = get_flights_from_filter(
+            tfs,
+            currency=currency,
+            mode="local",
         )
 
         flights = result.flights
