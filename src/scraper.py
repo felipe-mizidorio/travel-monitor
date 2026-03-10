@@ -135,6 +135,7 @@ def fetch_flight_offers(trip: dict) -> dict | None:
 
     except Exception as e:
         import traceback
+
         logger.error(
             f"Error fetching flights for {origin} -> {destination} on {departure_date}: {e}\n{traceback.format_exc()}"
         )
