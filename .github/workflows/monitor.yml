@@ -27,11 +27,11 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-root
 
+      - name: Install Playwright browsers
+        run: poetry run playwright install chromium --with-deps
+
       - name: Run monitor
         run: poetry run python -m src.monitor
         env:
-          AMADEUS_CLIENT_ID: ${{ secrets.AMADEUS_CLIENT_ID }}
-          AMADEUS_CLIENT_SECRET: ${{ secrets.AMADEUS_CLIENT_SECRET }}
-          AMADEUS_HOSTNAME: ${{ secrets.AMADEUS_HOSTNAME }}
           EMAIL_SENDER: ${{ secrets.EMAIL_SENDER }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
