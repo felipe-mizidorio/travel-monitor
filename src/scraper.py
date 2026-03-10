@@ -1,7 +1,7 @@
 import logging
-import os
 from pathlib import Path
 import re
+from typing import Literal, TypeAlias
 
 from fast_flights import FlightData, Passengers, get_flights
 from dotenv import load_dotenv
@@ -48,13 +48,16 @@ def fetch_flight_offers(trip: dict) -> dict | None:
     children = trip.get("children", 0)
     infants = trip.get("infants", 0)
 
-    seat_map = {
+    SeatType: TypeAlias = Literal["economy", "premium-economy", "business", "first"]
+    TripType: TypeAlias = Literal["round-trip", "one-way", "multi-city"]
+
+    seat_map: dict[str, SeatType] = {
         "ECONOMY": "economy",
-        "PREMIUM_ECONOMY": "premium economy",
+        "PREMIUM_ECONOMY": "premium-economy",
         "BUSINESS": "business",
         "FIRST": "first",
     }
-    seat = seat_map.get(trip.get("travel_class", "ECONOMY"), "economy")
+    seat: SeatType = seat_map.get(trip.get("travel_class", "ECONOMY"), "economy")
 
     flight_data = [
         FlightData(date=departure_date, from_airport=origin, to_airport=destination)
@@ -64,7 +67,7 @@ def fetch_flight_offers(trip: dict) -> dict | None:
             FlightData(date=return_date, from_airport=destination, to_airport=origin)
         )
 
-    trip_type = "round-trip" if return_date else "one-way"
+    trip_type: TripType = "round-trip" if return_date else "one-way"
 
     try:
         result = get_flights(
