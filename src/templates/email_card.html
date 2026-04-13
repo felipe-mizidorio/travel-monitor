@@ -1,48 +1,86 @@
-<div style="background: #ffffff; border-radius: 12px; padding: 20px; margin-bottom: 16px;
-           box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid #2563eb;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0"
+       style="margin-bottom: 24px; border-radius: 16px; overflow: hidden;
+              background: #ffffff; box-shadow: 0 4px 20px rgba(15,23,42,0.13);">
 
-    <div style="font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 4px;">
-        ✈️ $origin → $destination
-    </div>
-    <div style="font-size: 13px; color: #64748b; margin-bottom: 4px;">$airline</div>
+  <!-- Header: route -->
+  <tr>
+    <td style="background: #0f172a; padding: 22px 24px 18px;">
+      <div style="font-size: 26px; font-weight: 900; color: #ffffff;
+                  letter-spacing: -0.5px; line-height: 1.1; margin-bottom: 6px;">
+        &#9992;&#65039; $origin &rarr; $destination
+      </div>
+      <div style="font-size: 11px; font-weight: 700; color: #475569;
+                  text-transform: uppercase; letter-spacing: 0.12em;">
+        $airline
+      </div>
+    </td>
+  </tr>
 
-    <div style="color: #475569; font-size: 14px; margin-bottom: 16px;">
-        📅 $departure_date<br>
-        🔙 $return_date
-    </div>
+  <!-- Flight legs -->
+  <tr>
+    <td style="background: #ffffff; padding: 20px 24px 8px;">
+      $flight_details
+    </td>
+  </tr>
 
-    <table style="width: 100%; border-collapse: separate; border-spacing: 6px;">
+  <!-- Divider -->
+  <tr>
+    <td style="padding: 0 24px; background: #ffffff;">
+      <div style="height: 1px; background: #e2e8f0;"></div>
+    </td>
+  </tr>
+
+  <!-- Best Price -->
+  <tr>
+    <td style="padding: 16px 24px 8px; background: #ffffff;">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
         <tr>
-            <td style="background: #f0fdf4; border-radius: 8px; padding: 10px 4px; text-align: center;">
-                <div style="font-size: 10px; color: #16a34a; font-weight: 600;
-                            text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">
-                    Best Price
-                </div>
-                <div style="font-size: 18px; font-weight: 800; color: #15803d; white-space: nowrap;">
-                    $best_price
-                </div>
-                <div style="font-size: 11px; color: #15803d;">$currency</div>
-            </td>
-            <td style="background: #f8fafc; border-radius: 8px; padding: 10px 4px; text-align: center;">
-                <div style="font-size: 10px; color: #64748b; font-weight: 600;
-                            text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">
-                    Your Max
-                </div>
-                <div style="font-size: 18px; font-weight: 800; color: #94a3b8; white-space: nowrap;">
-                    $max_price
-                </div>
-                <div style="font-size: 11px; color: #94a3b8;">$currency</div>
-            </td>
-            <td style="background: #eff6ff; border-radius: 8px; padding: 10px 4px; text-align: center;">
-                <div style="font-size: 10px; color: #2563eb; font-weight: 600;
-                            text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">
-                    You Save
-                </div>
-                <div style="font-size: 18px; font-weight: 800; color: #1d4ed8;">
-                    $savings_pct%
-                </div>
-            </td>
+          <td style="background: #f0fdf4; border-radius: 12px; padding: 14px 18px;">
+            <div style="font-size: 10px; font-weight: 700; color: #16a34a;
+                        text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 4px;">
+              Best Price
+            </div>
+            <div style="font-size: 32px; font-weight: 900; color: #15803d; line-height: 1;">
+              $best_price
+              <span style="font-size: 15px; font-weight: 600; color: #16a34a;">$currency</span>
+            </div>
+          </td>
         </tr>
-    </table>
+      </table>
+    </td>
+  </tr>
 
-</div>
+  <!-- Your Max + You Save -->
+  <tr>
+    <td style="padding: 0 24px 20px; background: #ffffff;">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td width="50%" style="padding-top: 8px; padding-right: 4px;">
+            <div style="background: #f8fafc; border-radius: 12px; padding: 12px 16px;">
+              <div style="font-size: 10px; font-weight: 700; color: #94a3b8;
+                          text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 4px;">
+                Your Max
+              </div>
+              <div style="font-size: 22px; font-weight: 800; color: #94a3b8; line-height: 1;">
+                $max_price
+                <span style="font-size: 11px; font-weight: 600;">$currency</span>
+              </div>
+            </div>
+          </td>
+          <td width="50%" style="padding-top: 8px; padding-left: 4px;">
+            <div style="background: #eff6ff; border-radius: 12px; padding: 12px 16px;">
+              <div style="font-size: 10px; font-weight: 700; color: #2563eb;
+                          text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 4px;">
+                You Save
+              </div>
+              <div style="font-size: 22px; font-weight: 800; color: #1d4ed8; line-height: 1;">
+                $savings_pct%
+              </div>
+            </div>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+
+</table>
