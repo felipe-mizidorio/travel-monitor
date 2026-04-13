@@ -1,0 +1,45 @@
+<table width="100%" cellpadding="0" cellspacing="0" border="0"
+       style="margin-bottom: 12px; border-radius: 10px; background: #f8fafc;">
+  <tr>
+    <td style="padding: 14px 16px;">
+
+      <!-- Label + date -->
+      <table width="100%" cellpadding="0" cellspacing="0" border="0"
+             style="margin-bottom: 10px;">
+        <tr>
+          <td>
+            <span style="display: inline-block; padding: 2px 6px;
+                         background: $label_bg; color: $label_color;
+                         font-size: 8px; font-weight: 800;
+                         text-transform: uppercase; letter-spacing: 0.1em;
+                         border-radius: 5px;">$label</span>
+          </td>
+          <td align="right">
+            <span style="font-size: 12px; color: #94a3b8; font-weight: 500;">$date</span>
+          </td>
+        </tr>
+      </table>
+
+      <!-- Time range -->
+      <div style="font-size: 24px; font-weight: 900; color: #0f172a;
+                  letter-spacing: -0.5px; line-height: 1.1; margin-bottom: 10px;">
+        $dep_time &rarr; $arr_time<span style="font-size: 12px; font-weight: 700;
+                                               color: #f59e0b; vertical-align: super;">$next_day_label</span>
+      </div>
+
+      <!-- Detail badges -->
+      <div>
+        <span style="display: inline-block; margin: 0 5px 4px 0; padding: 3px 9px;
+                     background: #e2e8f0; color: #475569;
+                     font-size: 11px; font-weight: 600; border-radius: 5px;">$duration</span>
+        <span style="display: inline-block; margin: 0 5px 4px 0; padding: 3px 9px;
+                     background: #dcfce7; color: #16a34a;
+                     font-size: 11px; font-weight: 600; border-radius: 5px;">$stops_label</span>
+        <span style="display: inline-block; margin: 0 0 4px 0; padding: 3px 9px;
+                     background: #e0f2fe; color: #0369a1;
+                     font-size: 11px; font-weight: 600; border-radius: 5px;">$airline</span>
+      </div>
+
+    </td>
+  </tr>
+</table>
