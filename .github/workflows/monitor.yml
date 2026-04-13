@@ -14,7 +14,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Create users.yml
-        run: echo "${{ secrets.USERS_YML }}" > users.yml
+        env:
+          USERS_YML: ${{ secrets.USERS_YML }}
+        run: echo "$USERS_YML" > users.yml
 
       - name: Set up Python
         uses: actions/setup-python@v5
