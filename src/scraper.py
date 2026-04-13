@@ -48,7 +48,9 @@ def _parse_flight_time(time_str: str) -> dt_time | None:
     match = re.search(r"\d{1,2}:\d{2}\s*[AP]M", normalized, re.IGNORECASE)
     if match:
         try:
-            return datetime.strptime(re.sub(r"\s+", " ", match.group()).strip(), "%I:%M %p").time()
+            return datetime.strptime(
+                re.sub(r"\s+", " ", match.group()).strip(), "%I:%M %p"
+            ).time()
         except ValueError:
             pass
     # Fallback: extract 24h time (e.g. "13:25")
@@ -61,7 +63,9 @@ def _parse_flight_time(time_str: str) -> dt_time | None:
     return None
 
 
-def _in_time_range(flight_time_str: str, from_str: str | None, to_str: str | None) -> bool:
+def _in_time_range(
+    flight_time_str: str, from_str: str | None, to_str: str | None
+) -> bool:
     """Returns True if flight_time_str satisfies the given bounds (HH:MM 24h format).
 
     Either bound may be omitted for open-ended filtering.
@@ -76,12 +80,15 @@ def _in_time_range(flight_time_str: str, from_str: str | None, to_str: str | Non
     return True
 
 
+SeatType: TypeAlias = Literal["economy", "premium-economy", "business", "first"]
+
+
 def _fetch_best_flight(
     *,
     origin: str,
     destination: str,
     date: str,
-    seat: str,
+    seat: SeatType,
     passengers: Passengers,
     currency: str,
     max_stops: int | None = None,
@@ -94,7 +101,9 @@ def _fetch_best_flight(
     Returns a dict with flight details or None if no flights match.
     """
     tfs = create_filter(
-        flight_data=[FlightData(date=date, from_airport=origin, to_airport=destination)],
+        flight_data=[
+            FlightData(date=date, from_airport=origin, to_airport=destination)
+        ],
         trip="one-way",
         seat=seat,
         passengers=passengers,
@@ -115,7 +124,9 @@ def _fetch_best_flight(
         flights = [f for f in flights if _parse_duration(f.duration) <= max_minutes]
 
     if time_from or time_to:
-        flights = [f for f in flights if _in_time_range(f.departure, time_from, time_to)]
+        flights = [
+            f for f in flights if _in_time_range(f.departure, time_from, time_to)
+        ]
 
     if not flights:
         logger.info(
@@ -148,8 +159,6 @@ def fetch_flight_offers(trip: dict) -> dict | None:
     adults = int(trip.get("adults", 1))
     children = int(trip.get("children", 0))
     infants = int(trip.get("infants", 0))
-
-    SeatType: TypeAlias = Literal["economy", "premium-economy", "business", "first"]
 
     seat_map: dict[str, SeatType] = {
         "ECONOMY": "economy",
@@ -203,7 +212,9 @@ def fetch_flight_offers(trip: dict) -> dict | None:
                 return None
 
             best_price = outbound["price"] + inbound["price"]
-            carrier = trip.get("airline") or f"{outbound['airline']} / {inbound['airline']}"
+            carrier = (
+                trip.get("airline") or f"{outbound['airline']} / {inbound['airline']}"
+            )
         else:
             inbound = None
             best_price = outbound["price"]
