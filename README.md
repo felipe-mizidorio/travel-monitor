@@ -92,7 +92,11 @@ users:
       - origin: LIS
         destination: CDG
         departure_date: "2026-07-10"
+        departure_time_from: "09:00"
+        departure_time_to: "12:00"
         return_date: "2026-07-20"
+        return_time_from: "14:00"
+        return_time_to: "20:00"
         currency: EUR
         max_price: 300
         adults: 2
@@ -126,6 +130,10 @@ Each trip entry in `users.yml` supports the following fields:
 | `travel_class` | No | `ECONOMY` | One of `ECONOMY`, `PREMIUM_ECONOMY`, `BUSINESS`, `FIRST` |
 | `max_stops` | No | — | Set to `0` for non-stop flights only |
 | `max_duration_hours` | No | — | Maximum flight duration in hours |
+| `departure_time_from` | No | — | Earliest acceptable outbound departure time (`HH:MM`, 24h) |
+| `departure_time_to` | No | — | Latest acceptable outbound departure time (`HH:MM`, 24h) |
+| `return_time_from` | No | — | Earliest acceptable return departure time (`HH:MM`, 24h) |
+| `return_time_to` | No | — | Latest acceptable return departure time (`HH:MM`, 24h) |
 | `max_price_per_person` | No | `false` | If `true`, compares price per person against `max_price` |
 
 ---
