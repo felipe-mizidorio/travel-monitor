@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, time as dt_time
 from pathlib import Path
 import re
 from typing import Literal, TypeAlias
@@ -37,6 +38,106 @@ def _parse_duration(duration_str: str) -> int:
     return total
 
 
+def _parse_flight_time(time_str: str) -> dt_time | None:
+    """Parses a flight time string such as '1:25 PM on Fri, May 8' to a time object."""
+    if not time_str:
+        return None
+    # Normalize Unicode whitespace (e.g. narrow no-break space used by Google Flights)
+    normalized = re.sub(r"\s+", " ", time_str).strip()
+    # Extract 12h time (e.g. "1:25 PM") ignoring trailing date info
+    match = re.search(r"\d{1,2}:\d{2}\s*[AP]M", normalized, re.IGNORECASE)
+    if match:
+        try:
+            return datetime.strptime(re.sub(r"\s+", " ", match.group()).strip(), "%I:%M %p").time()
+        except ValueError:
+            pass
+    # Fallback: extract 24h time (e.g. "13:25")
+    match = re.search(r"\b\d{1,2}:\d{2}\b", normalized)
+    if match:
+        try:
+            return datetime.strptime(match.group(), "%H:%M").time()
+        except ValueError:
+            pass
+    return None
+
+
+def _in_time_range(flight_time_str: str, from_str: str | None, to_str: str | None) -> bool:
+    """Returns True if flight_time_str satisfies the given bounds (HH:MM 24h format).
+
+    Either bound may be omitted for open-ended filtering.
+    """
+    flight_time = _parse_flight_time(flight_time_str)
+    if flight_time is None:
+        return True  # don't filter out if time is unparseable
+    if from_str and flight_time < datetime.strptime(from_str, "%H:%M").time():
+        return False
+    if to_str and flight_time > datetime.strptime(to_str, "%H:%M").time():
+        return False
+    return True
+
+
+def _fetch_best_flight(
+    *,
+    origin: str,
+    destination: str,
+    date: str,
+    seat: str,
+    passengers: Passengers,
+    currency: str,
+    max_stops: int | None = None,
+    max_duration_hours: float | None = None,
+    time_from: str | None = None,
+    time_to: str | None = None,
+) -> dict | None:
+    """Fetches the cheapest one-way flight matching the filters.
+
+    Returns a dict with flight details or None if no flights match.
+    """
+    tfs = create_filter(
+        flight_data=[FlightData(date=date, from_airport=origin, to_airport=destination)],
+        trip="one-way",
+        seat=seat,
+        passengers=passengers,
+    )
+
+    result = get_flights_from_filter(tfs, currency=currency, mode="local")
+    flights = result.flights
+
+    if not flights:
+        logger.info(f"No flights found for {origin} -> {destination} on {date}")
+        return None
+
+    if max_stops == 0:
+        flights = [f for f in flights if f.stops == 0]
+
+    if max_duration_hours:
+        max_minutes = max_duration_hours * 60
+        flights = [f for f in flights if _parse_duration(f.duration) <= max_minutes]
+
+    if time_from or time_to:
+        flights = [f for f in flights if _in_time_range(f.departure, time_from, time_to)]
+
+    if not flights:
+        logger.info(
+            f"No flights found for {origin} -> {destination} on {date} after applying filters"
+        )
+        return None
+
+    best = min(flights, key=lambda f: _parse_price(f.price))
+    logger.info(
+        f"  → {origin} → {destination} on {date}: {best.departure} → {best.arrival} "
+        f"({best.duration}, {best.stops} stop(s)) at {best.price} with {best.name}"
+    )
+    return {
+        "price": _parse_price(best.price),
+        "airline": best.name,
+        "departure_time": best.departure,
+        "arrival_time": best.arrival,
+        "duration": best.duration,
+        "stops": best.stops,
+    }
+
+
 def fetch_flight_offers(trip: dict) -> dict | None:
     origin = str(trip["origin"])
     destination = str(trip["destination"])
@@ -49,7 +150,6 @@ def fetch_flight_offers(trip: dict) -> dict | None:
     infants = int(trip.get("infants", 0))
 
     SeatType: TypeAlias = Literal["economy", "premium-economy", "business", "first"]
-    TripType: TypeAlias = Literal["round-trip", "one-way", "multi-city"]
 
     seat_map: dict[str, SeatType] = {
         "ECONOMY": "economy",
@@ -59,56 +159,55 @@ def fetch_flight_offers(trip: dict) -> dict | None:
     }
     seat: SeatType = seat_map.get(trip.get("travel_class", "ECONOMY"), "economy")
 
-    flight_data = [
-        FlightData(date=departure_date, from_airport=origin, to_airport=destination)
-    ]
-    if return_date:
-        flight_data.append(
-            FlightData(date=return_date, from_airport=destination, to_airport=origin)
-        )
+    passengers = Passengers(
+        adults=adults,
+        children=children,
+        infants_in_seat=infants,
+    )
 
-    trip_type: TripType = "round-trip" if return_date else "one-way"
+    max_stops = trip.get("max_stops")
+    max_duration_hours = trip.get("max_duration_hours")
 
     try:
-        tfs = create_filter(
-            flight_data=flight_data,
-            trip=trip_type,
+        outbound = _fetch_best_flight(
+            origin=origin,
+            destination=destination,
+            date=departure_date,
             seat=seat,
-            passengers=Passengers(
-                adults=adults,
-                children=children,
-                infants_in_seat=infants,
-            ),
-        )
-
-        result = get_flights_from_filter(
-            tfs,
+            passengers=passengers,
             currency=currency,
-            mode="local",
+            max_stops=max_stops,
+            max_duration_hours=max_duration_hours,
+            time_from=trip.get("departure_time_from"),
+            time_to=trip.get("departure_time_to"),
         )
 
-        flights = result.flights
-        if not flights:
-            logger.info(
-                f"No flights found for {origin} -> {destination} on {departure_date}"
-            )
+        if outbound is None:
             return None
 
-        if trip.get("max_stops") == 0:
-            flights = [f for f in flights if f.stops == 0]
-
-        if trip.get("max_duration_hours"):
-            max_minutes = trip["max_duration_hours"] * 60
-            flights = [f for f in flights if _parse_duration(f.duration) <= max_minutes]
-
-        if not flights:
-            logger.info(
-                f"No flights found for {origin} -> {destination} on {departure_date} after applying filters"
+        if return_date:
+            inbound = _fetch_best_flight(
+                origin=destination,
+                destination=origin,
+                date=return_date,
+                seat=seat,
+                passengers=passengers,
+                currency=currency,
+                max_stops=max_stops,
+                max_duration_hours=max_duration_hours,
+                time_from=trip.get("return_time_from"),
+                time_to=trip.get("return_time_to"),
             )
-            return None
 
-        best = min(flights, key=lambda f: _parse_price(f.price))
-        best_price = _parse_price(best.price)
+            if inbound is None:
+                return None
+
+            best_price = outbound["price"] + inbound["price"]
+            carrier = trip.get("airline") or f"{outbound['airline']} / {inbound['airline']}"
+        else:
+            inbound = None
+            best_price = outbound["price"]
+            carrier = trip.get("airline") or outbound["airline"]
 
         if trip.get("max_price_per_person"):
             total_passengers = adults + children + infants
@@ -116,9 +215,8 @@ def fetch_flight_offers(trip: dict) -> dict | None:
         else:
             comparable_price = best_price
 
-        carrier = trip.get("airline") or best.name
         logger.info(
-            f"Best flight for {origin} -> {destination} on {departure_date}: {best.price} {currency} with {carrier}"
+            f"Best flight for {origin} -> {destination} on {departure_date}: {best_price} {currency} with {carrier}"
         )
 
         return {
@@ -131,6 +229,8 @@ def fetch_flight_offers(trip: dict) -> dict | None:
             "max_price": max_price,
             "currency": currency,
             "airline": carrier,
+            "outbound": outbound,
+            "inbound": inbound,
         }
 
     except Exception as e:
